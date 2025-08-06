@@ -1,12 +1,80 @@
-# React + Vite
+# CIPR Ecommerce Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, responsive e-commerce frontend built with React, Vite, and Tailwind CSS. Features product browsing, search functionality, shopping cart, and QR code integration.
 
-Currently, two official plugins are available:
+## 🚀 Quick Start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+# Install dependencies
+npm install
 
-## Expanding the ESLint configuration
+# Start development server
+npm run dev
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+# Build for production
+npm run build
+```
+
+## 🛠 Tech Stack
+
+- **React 19.1.0** - Frontend framework
+- **Vite 7.0.4** - Build tool and dev server
+- **Tailwind CSS 3.4.17** - Utility-first styling
+- **React Router DOM 7.7.1** - Client-side routing
+- **Lucide React** - Icon library
+- **QRCode** - QR code generation
+
+## 📋 Features
+
+- ✅ Responsive product catalog
+- ✅ Advanced search with suggestions
+- ✅ Shopping cart functionality
+- ✅ QR code generation
+- ✅ AI-powered product recommendations
+- ✅ Modern UI with Tailwind CSS
+- ✅ Fast development with Vite HMR
+
+## 📁 Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+├── pages/              # Route components
+├── layout/             # Layout wrappers
+├── assets/             # Static assets
+└── App.jsx             # Main application
+```
+
+## 🔧 Available Scripts
+
+```bash
+npm run dev      # Start development server
+npm run build    # Build for production
+npm run preview  # Preview production build
+npm run lint     # Run ESLint
+```
+
+## 📚 Documentation
+
+- **[Development Guide](./DEVELOPMENT.md)** - Comprehensive development and maintenance documentation
+- **[Quick Reference](./QUICK-REFERENCE.md)** - Developer cheat sheet and common patterns
+
+## 🚢 Deployment
+
+The application can be deployed to any static hosting service:
+
+- **Vercel** (Recommended)
+- **Netlify**
+- **GitHub Pages**
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run `npm run lint` to check code quality
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.
