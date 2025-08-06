@@ -28,6 +28,24 @@ npm run dev
 | `tailwind.config.js` | Tailwind CSS configuration |
 | `vite.config.js` | Vite build configuration |
 
+## 📱 Mobile Navigation Features
+
+### **Burger Menu Implementation**
+- **Toggle Functionality**: Hamburger/close icon animation
+- **Slide Animation**: Smooth slide-down transition (300ms)
+- **Auto-close**: Menu closes on route change or outside click
+- **Backdrop Overlay**: Semi-transparent overlay for better UX
+
+```jsx
+// Mobile menu state management
+const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+// Auto-close on route change
+useEffect(() => {
+  setIsMobileMenuOpen(false);
+}, [location.pathname]);
+```
+
 ## 🎨 Common Tailwind Patterns
 
 ```jsx
