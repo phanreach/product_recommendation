@@ -11,6 +11,8 @@ import Collections from './pages/collections';
 import New from './pages/new';
 import Cart from './pages/cart';
 import { SimpleToaster } from './components/ui/simple-toaster';
+import LoginPage from './components/auth/login';
+import RegisterPage from './components/auth/register';
 
 function App() {
   return (
@@ -19,6 +21,8 @@ function App() {
           <div className="App">
             <Routes>
               {/* Routes under the main layout */}
+              <Route path="/auth/login" element={<LoginPage />} />
+              <Route path="/auth/register" element={<RegisterPage />} />
               <Route element={<MainLayout />}>
                 {/* Public Routes */}
                 <Route path="/" element={<Home />} />
