@@ -1,7 +1,76 @@
-import { useState } from 'react';
-import { Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, ChevronDown, ChevronUp, RefreshCw, AlertCircle } from 'lucide-react';
+import { getProducts } from '../api/services';
+import ProductCard from '../components/ProductCard';
+import ProductSkeleton from '../components/ProductSkeleton';
+import ScrollToTop from '../components/ScrollToTop';
+import Toast from '../components/Toast';
+import useDebounce from '../hooks/useDebounce';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useAsyncState } from '../hooks/useAsyncState';
+
+// Fallback product data in case API is not available
+const fallbackProducts = [
+  {
+    id: 1,
+    name: 'Basic Slim Fit T-Shirt',
+    type: 'Cotton T Shirt',
+    price: 199,
+    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop',
+    category: 'NEW'
+  },
+  {
+    id: 2,
+    name: 'Basic Heavy Weight T-Shirt', 
+    type: 'Crewneck T-Shirt',
+    price: 199,
+    image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400&h=400&fit=crop',
+    category: 'NEW'
+  },
+  {
+    id: 3,
+    name: 'Basic Cotton Hoodie',
+    type: 'Hooded Sweatshirt',
+    price: 299,
+    image: 'https://images.unsplash.com/photo-1583743814966-8936f37f4b30?w=400&h=400&fit=crop',
+    category: 'NEW'
+  },
+  {
+    id: 4,
+    name: 'Classic Denim Jacket',
+    type: 'Denim Outerwear',
+    price: 399,
+    image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400&h=400&fit=crop',
+    category: 'OUTERWEAR'
+  },
+  {
+    id: 5,
+    name: 'Summer Polo Shirt',
+    type: 'Polo Shirt',
+    price: 159,
+    image: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=400&h=400&fit=crop',
+    category: 'POLO'
+  },
+  {
+    id: 6,
+    name: 'Relaxed Fit Jeans',
+    type: 'Denim Pants',
+    price: 249,
+    image: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=400&h=400&fit=crop',
+    category: 'PANTS'
+  }
+];
 
 const Products = () => {
+  const { handleError } = useErrorHandler();
+  const {
+    data: products,
+    loading,
+    error,
+    execute: executeProductFetch,
+    setData: setProducts
+  } = useAsyncState([]);
+
   const [activeFilters, setActiveFilters] = useState({
     availability: true,
     category: false,
@@ -13,6 +82,65 @@ const Products = () => {
   });
 
   const [selectedCategory, setSelectedCategory] = useState('NEW');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Debounce search query for better performance
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  // Initialize products on component mount
+  useEffect(() => {
+    const fetchProductsData = async () => {
+      try {
+        const data = await getProducts();
+        return data.products || data || fallbackProducts;
+      } catch (err) {
+        // Use fallback data if API fails but still throw to trigger error handling
+        setProducts(fallbackProducts);
+        throw err;
+      }
+    };
+
+    executeProductFetch(fetchProductsData).catch((err) => {
+      handleError(err, {
+        fallbackMessage: 'Failed to load products. Using demo data.',
+        showToast: true,
+        context: 'product_fetch'
+      });
+    });
+  }, [executeProductFetch, handleError, setProducts]);
+
+  const fetchProducts = async () => {
+    const fetchProductsData = async () => {
+      try {
+        const data = await getProducts();
+        return data.products || data || fallbackProducts;
+      } catch (err) {
+        // Use fallback data if API fails but still throw to trigger error handling
+        setProducts(fallbackProducts);
+        throw err;
+      }
+    };
+
+    return executeProductFetch(fetchProductsData).catch((err) => {
+      handleError(err, {
+        fallbackMessage: 'Failed to load products. Using demo data.',
+        showToast: true,
+        context: 'product_fetch_retry'
+      });
+    });
+  };
+
+  const handleRetry = () => {
+    fetchProducts();
+  };
+
+  // Filter products based on search and category
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+                         (product.type && product.type.toLowerCase().includes(debouncedSearchQuery.toLowerCase()));
+    const matchesCategory = selectedCategory === 'NEW' || product.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   const toggleFilter = (filter) => {
     setActiveFilters(prev => ({
@@ -21,64 +149,25 @@ const Products = () => {
     }));
   };
 
-  // Sample product data based on your reference
-  const products = [
-    {
-      id: 1,
-      name: 'Basic Slim Fit T-Shirt',
-      type: 'Cotton T Shirt',
-      price: 199,
-      image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop',
-      category: 'NEW'
-    },
-    {
-      id: 2,
-      name: 'Basic Heavy Weight T-Shirt', 
-      type: 'Crewneck T-Shirt',
-      price: 199,
-      image: 'https://images.unsplash.com/photo-1583743814966-8936f37f4b30?w=400&h=400&fit=crop',
-      category: 'NEW'
-    },
-    {
-      id: 3,
-      name: 'Full Sleeve Zipper',
-      type: 'Cotton T Shirt',
-      price: 199,
-      image: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=400&h=400&fit=crop',
-      category: 'NEW'
-    },
-    {
-      id: 4,
-      name: 'Embroidered Destructive Shirt',
-      type: 'Cotton T Shirt',
-      price: 199,
-      image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400&h=400&fit=crop',
-      category: 'SHIRTS'
-    },
-    {
-      id: 5,
-      name: 'Basic Heavy Weight T-Shirt',
-      type: 'Cotton T Shirt', 
-      price: 199,
-      image: 'https://images.unsplash.com/photo-1622445275576-721325763afe?w=400&h=400&fit=crop',
-      category: 'T-SHIRTS'
-    },
-    {
-      id: 6,
-      name: 'Skimmed Print T-Shirt',
-      type: 'Hermy Shirt',
-      price: 399,
-      image: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=400&h=400&fit=crop',
-      category: 'POLO SHIRTS'
-    }
-  ];
-
   const categories = [
     'NEW', 'BEST SELLERS', 'SHIRTS', 'T-SHIRTS', 'POLO SHIRTS', 'SHORTS', 
     'JEANS', 'SUIT', 'JACKETS', 'COAT'
   ];
 
   const sizes = ['XS', 'S', 'M', 'L', 'XL', '2X'];
+
+  if (loading) {
+    return (
+      <div className="bg-gray-50 min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center py-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading products...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -91,7 +180,25 @@ const Products = () => {
         </div>
 
         {/* Page Title */}
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">PRODUCTS</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">PRODUCTS</h1>
+          {error && (
+            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-2 rounded text-sm flex items-center gap-2">
+              <AlertCircle size={16} />
+              <span>{error.message || 'Using demo data (API unavailable)'}</span>
+              {error.canRetry && (
+                <button
+                  onClick={handleRetry}
+                  className="ml-2 text-yellow-800 hover:text-yellow-900 underline text-sm flex items-center gap-1"
+                  disabled={loading}
+                >
+                  <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                  Retry
+                </button>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar Filters */}
@@ -214,7 +321,9 @@ const Products = () => {
               </div>
               <input
                 type="text"
-                placeholder="Search"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-gray-500 focus:border-gray-500"
               />
             </div>
@@ -238,25 +347,35 @@ const Products = () => {
 
             {/* Products Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((product) => (
-                <div key={product.id} className="bg-white rounded-lg shadow-sm overflow-hidden group hover:shadow-md transition-shadow">
-                  <div className="aspect-square bg-gray-100">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+              {loading ? (
+                // Show skeleton loading states
+                Array.from({ length: 6 }).map((_, index) => (
+                  <ProductSkeleton key={index} />
+                ))
+              ) : filteredProducts.length > 0 ? (
+                filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full text-center py-16">
+                  <div className="text-gray-400 mb-4">
+                    <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
                   </div>
-                  <div className="p-4">
-                    <p className="text-xs text-gray-500 mb-1">{product.type}</p>
-                    <h3 className="text-sm font-medium text-gray-900 mb-2">{product.name}</h3>
-                    <p className="text-lg font-semibold text-gray-900">${product.price}</p>
-                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
+                  <p className="text-gray-600">Try adjusting your search or filters</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
+
+        {/* Scroll to Top Button */}
+        <ScrollToTop />
       </div>
     </div>
   );

@@ -1,46 +1,176 @@
-import { Minus, Plus, Trash2, ShoppingCart } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Minus, Plus, Trash2, ShoppingCart, RefreshCw, AlertCircle } from 'lucide-react';
+import { getCart, purchaseProducts } from '../api/services';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useAsyncState } from '../hooks/useAsyncState';
 
 const Cart = () => {
-  const cartItems = [
-    {
-      id: 1,
-      name: 'Basic Heavy Weight T-Shirt',
-      color: 'Black',
-      size: 'M',
-      price: 199,
-      quantity: 2,
-      image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300&h=300&fit=crop'
-    },
-    {
-      id: 2,
-      name: 'Premium Denim Jacket',
-      color: 'Blue',
-      size: 'L',
-      price: 399,
-      quantity: 1,
-      image: 'https://images.unsplash.com/photo-1551537482-f2075a1d41f2?w=300&h=300&fit=crop'
-    }
-  ];
+  const { handleError, showToast } = useErrorHandler();
+  const {
+    data: cartItems,
+    loading,
+    error,
+    execute: executeCartFetch,
+    setData: setCartItems
+  } = useAsyncState([]);
 
-  const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-  const shipping = 50;
+  const [purchasing, setPurchasing] = useState(false);
+  const [success, setSuccess] = useState('');
+
+  const fetchCart = useCallback(async () => {
+    const fetchCartData = async () => {
+      try {
+        const data = await getCart();
+        return data.cart || data || [];
+      } catch {
+        // Return empty cart if there's an error
+        return [];
+      }
+    };
+
+    return executeCartFetch(fetchCartData).catch((err) => {
+      handleError(err, {
+        fallbackMessage: 'Failed to load cart items.',
+        showToast: true,
+        context: 'cart_fetch'
+      });
+    });
+  }, [executeCartFetch, handleError]);
+
+  useEffect(() => {
+    fetchCart();
+  }, [fetchCart]);
+
+  const handlePurchase = async () => {
+    if (cartItems.length === 0) {
+      showToast('Your cart is empty.', 'error');
+      return;
+    }
+
+    try {
+      setPurchasing(true);
+      setSuccess('');
+      
+      // Extract cart IDs
+      const cartIds = cartItems.map(item => item.id);
+      
+      await purchaseProducts(cartIds);
+      setSuccess('Purchase completed successfully!');
+      showToast('Purchase completed successfully!', 'success');
+      
+      // Refresh cart after purchase
+      setTimeout(() => {
+        fetchCart();
+        setSuccess('');
+      }, 2000);
+    } catch (err) {
+      handleError(err, {
+        fallbackMessage: 'Purchase failed. Please try again.',
+        showToast: true,
+        context: 'purchase'
+      });
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
+  const subtotal = cartItems.reduce((total, item) => total + ((item.price || 0) * item.quantity), 0);
+  const shipping = cartItems.length > 0 ? 50 : 0;
   const tax = subtotal * 0.1;
   const total = subtotal + shipping + tax;
 
-  const updateQuantity = (id, newQuantity) => {
-    // This would update the cart state in a real application
-    console.log(`Update item ${id} to quantity ${newQuantity}`);
+  const updateQuantity = async (id, newQuantity) => {
+    try {
+      // This would update the cart via API in a real application
+      const updatedQuantity = Math.max(1, newQuantity);
+      
+      // Update local state optimistically
+      setCartItems(items => 
+        items.map(item => 
+          item.id === id ? { ...item, quantity: updatedQuantity } : item
+        )
+      );
+      
+      showToast(`Quantity updated to ${updatedQuantity}`, 'success');
+      
+      // Here you would call an API to update the quantity
+      // await updateCartItemQuantity(id, updatedQuantity);
+      
+    } catch (err) {
+      handleError(err, {
+        fallbackMessage: 'Failed to update quantity. Please try again.',
+        showToast: true,
+        context: 'update_quantity'
+      });
+      
+      // Revert optimistic update on error
+      fetchCart();
+    }
   };
 
-  const removeItem = (id) => {
-    // This would remove the item from cart in a real application
-    console.log(`Remove item ${id} from cart`);
+  const removeItem = async (id) => {
+    try {
+      // Update local state optimistically
+      setCartItems(items => items.filter(item => item.id !== id));
+      
+      showToast('Item removed from cart', 'success');
+      
+      // Here you would call an API to remove the item
+      // await removeCartItem(id);
+      
+    } catch (err) {
+      handleError(err, {
+        fallbackMessage: 'Failed to remove item. Please try again.',
+        showToast: true,
+        context: 'remove_item'
+      });
+      
+      // Revert optimistic update on error
+      fetchCart();
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="bg-gray-50 min-h-screen py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center py-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading cart...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Shopping Cart</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Shopping Cart</h1>
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded text-sm flex items-center gap-2">
+              <AlertCircle size={16} />
+              <span>{error.message || 'Failed to load cart'}</span>
+              {error.canRetry && (
+                <button
+                  onClick={fetchCart}
+                  className="ml-2 text-red-800 hover:text-red-900 underline text-sm flex items-center gap-1"
+                  disabled={loading}
+                >
+                  <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                  Retry
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {success && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
+            {success}
+          </div>
+        )}
 
         {cartItems.length === 0 ? (
           /* Empty Cart State */
@@ -48,12 +178,14 @@ const Cart = () => {
             <ShoppingCart size={64} className="mx-auto text-gray-400 mb-4" />
             <h2 className="text-2xl font-medium text-gray-900 mb-2">Your cart is empty</h2>
             <p className="text-gray-600 mb-8">Add some items to get started</p>
-            <a
-              href="/products"
-              className="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors"
-            >
-              Continue Shopping
-            </a>
+            <div className="space-x-4">
+              <a
+                href="/products"
+                className="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                Continue Shopping
+              </a>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -68,17 +200,22 @@ const Cart = () => {
                       {/* Product Image */}
                       <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                         <img
-                          src={item.image}
-                          alt={item.name}
+                          src={item.image || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300&h=300&fit=crop'}
+                          alt={item.product_name || item.name || 'Product'}
                           className="w-full h-full object-cover"
                         />
                       </div>
 
                       {/* Product Details */}
                       <div className="flex-grow">
-                        <h3 className="text-lg font-medium text-gray-900">{item.name}</h3>
-                        <p className="text-sm text-gray-600">Color: {item.color} • Size: {item.size}</p>
-                        <p className="text-lg font-semibold text-gray-900 mt-1">${item.price}</p>
+                        <h3 className="text-lg font-medium text-gray-900">
+                          {item.product_name || item.name || `Product ${item.product_id}`}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {item.color && `Color: ${item.color}`} 
+                          {item.size && ` • Size: ${item.size}`}
+                        </p>
+                        <p className="text-lg font-semibold text-gray-900 mt-1">${item.price || 0}</p>
                       </div>
 
                       {/* Quantity Controls */}
@@ -119,11 +256,11 @@ const Cart = () => {
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Subtotal</span>
-                    <span className="font-medium">${subtotal}</span>
+                    <span className="font-medium">${subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Shipping</span>
-                    <span className="font-medium">${shipping}</span>
+                    <span className="font-medium">${shipping.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Tax</span>
@@ -137,28 +274,20 @@ const Cart = () => {
                   </div>
                 </div>
 
-                <button className="w-full bg-gray-900 text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors mb-3">
-                  Proceed to Checkout
+                <button 
+                  onClick={handlePurchase}
+                  disabled={purchasing || cartItems.length === 0}
+                  className="w-full bg-gray-900 text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {purchasing ? 'Processing...' : 'Proceed to Checkout'}
                 </button>
                 
-                <button className="w-full border border-gray-300 text-gray-900 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+                <button 
+                  onClick={() => window.location.href = '/'}
+                  className="w-full border border-gray-300 text-gray-900 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                >
                   Continue Shopping
                 </button>
-
-                {/* Promo Code */}
-                <div className="mt-6 pt-6 border-t">
-                  <h3 className="text-sm font-medium text-gray-900 mb-3">Promo Code</h3>
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      placeholder="Enter code"
-                      className="flex-grow px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-500"
-                    />
-                    <button className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-800 transition-colors">
-                      Apply
-                    </button>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

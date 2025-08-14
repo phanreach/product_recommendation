@@ -1,10 +1,21 @@
-import { Bell, Home, Package, ShoppingBag, User, Settings, LogOut, Menu, X } from "lucide-react";
+import { Bell, Home, Package, ShoppingBag, Menu, X } from "lucide-react";
 import { useLocation, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 
 function Navbar() {
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
+    
+    // Handle scroll detection
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 10);
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
     
     // Close mobile menu when route changes
     useEffect(() => {
@@ -22,7 +33,9 @@ function Navbar() {
     return (
         <>
             {/* Main Navigation Bar */}
-            <nav className="bg-white shadow-lg sticky top-0 z-50 border-b border-gray-200">
+            <nav className={`bg-white border-b border-gray-200 transition-shadow duration-300 ${
+                isScrolled ? 'shadow-lg' : 'shadow-sm'
+            }`} role="navigation" aria-label="Main navigation">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
                         {/* Logo */}
@@ -83,7 +96,8 @@ function Navbar() {
                             {/* Cart */}
                             <Link 
                                 to="/cart" 
-                                className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors duration-200"
+                                className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                                aria-label="Shopping cart with 0 items"
                             >
                                 <ShoppingBag size={20} />
                                 <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center font-medium">
@@ -92,17 +106,17 @@ function Navbar() {
                             </Link>
 
                             {/* Notifications */}
-                            <button className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors duration-200">
+                            <button 
+                                className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                                aria-label="Notifications - 2 unread"
+                            >
                                 <Bell size={20} />
                                 <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">
                                     2
                                 </span>
                             </button>
 
-                            {/* Profile */}
-                            <button className="p-2 text-gray-600 hover:text-blue-600 transition-colors duration-200">
-                                <User size={20} />
-                            </button>
+                            {/* Profile/Auth Section - Simplified */}
                         </div>
 
                         {/* Mobile Right Side */}
@@ -193,42 +207,6 @@ function Navbar() {
                         <Package size={20} />
                         <span className="font-medium">Products</span>
                     </Link>
-
-                    {/* Profile Section */}
-                    <div className="border-t border-gray-200 pt-6 mt-6">
-                        <div className="px-4 py-3 bg-gray-50 rounded-lg mb-4">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                                    <User size={20} className="text-white" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-gray-900">Welcome!</p>
-                                    <p className="text-xs text-gray-500">Manage your account</p>
-                                </div>
-                                <div className="ml-auto">
-                                    <Bell size={16} className="text-gray-400" />
-                                    <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <button 
-                                onClick={() => setIsMobileMenuOpen(false)}
-                                className="flex items-center space-x-3 w-full px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
-                            >
-                                <Settings size={16} />
-                                <span className="text-sm">Settings</span>
-                            </button>
-                            <button 
-                                onClick={() => setIsMobileMenuOpen(false)}
-                                className="flex items-center space-x-3 w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                            >
-                                <LogOut size={16} />
-                                <span className="text-sm">Sign Out</span>
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
         </>

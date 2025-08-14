@@ -1,23 +1,57 @@
 import PromotionProduct from "../components/promotion-product";
 import QRCodeGenerator from "../components/qr-code-generator";
+import ProductCard from "../components/ProductCard";
+import ScrollToTop from "../components/ScrollToTop";
 import { Search, TrendingUp, Clock, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { getProducts } from '../api/services';
 
 function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [popularProducts, setPopularProducts] = useState([]);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [collections, setCollections] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const trendingSearches = ['Basic T-Shirt', 'Denim Jacket', 'Polo Shirt', 'Chino Pants'];
   const recentSearches = ['Cotton Shirt', 'Black Jeans', 'Summer Collection'];
 
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await getProducts();
+        const products = response.products || [];
+        
+        // Distribute products across different sections
+        setPopularProducts(products.slice(0, 4));
+        setFeaturedProducts(products.slice(4, 8));
+        setCollections(products.slice(8, 12));
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        setPopularProducts([]);
+        setFeaturedProducts([]);
+        setCollections([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
   const handleSearch = (query) => {
     if (query.trim()) {
-      // In a real application, this would navigate to a search results page
-      console.log('Searching for:', query);
-      // You could navigate to a search results page like:
-      // window.location.href = `/search?q=${encodeURIComponent(query)}`;
+      navigate(`/products?search=${encodeURIComponent(query)}`);
       setIsSearchFocused(false);
     }
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    setSearchQuery(suggestion);
+    handleSearch(suggestion);
   };
 
   const handleKeyPress = (e) => {
@@ -34,352 +68,199 @@ function Home() {
     term.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const popularProducts = [
-    {
-      id: 1,
-      name: 'Classic Denim Shirt',
-      price: 199,
-      image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400&h=400&fit=crop'
-    },
-    {
-      id: 2, 
-      name: 'Basic White Tee',
-      price: 179,
-      image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop'
-    },
-    {
-      id: 3,
-      name: 'Casual Grey Hoodie', 
-      price: 299,
-      image: 'https://images.unsplash.com/photo-1583743814966-8936f37f4b30?w=400&h=400&fit=crop'
-    },
-    {
-      id: 4,
-      name: 'Summer Cotton Polo',
-      price: 159,
-      image: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=400&h=400&fit=crop'
-    }
-  ];
-
-  const featuredProducts = [
-    {
-      id: 5,
-      name: 'Vintage Leather Jacket',
-      price: 499,
-      image: 'https://images.unsplash.com/photo-1586790170083-2f9ceadc732d?w=400&h=400&fit=crop'
-    },
-    {
-      id: 6,
-      name: 'Printed Graphic Tee',
-      price: 89,
-      image: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=400&h=400&fit=crop'
-    },
-    {
-      id: 7,
-      name: 'Minimalist Sweatshirt',
-      price: 229,
-      image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=400&fit=crop'
-    },
-    {
-      id: 8,
-      name: 'Relaxed Fit Jeans',
-      price: 189,
-      image: 'https://images.unsplash.com/photo-1586790170083-2f9ceadc732d?w=400&h=400&fit=crop'
-    }
-  ];
-
-  const collections = [
-    {
-      id: 1,
-      name: 'Premium Cotton Tee',
-      price: 129,
-      image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=500&fit=crop'
-    },
-    {
-      id: 2,
-      name: 'Designer Slim Jeans',
-      price: 349, 
-      image: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=400&h=500&fit=crop'
-    },
-    {
-      id: 3,
-      name: 'Urban Streetwear Hoodie',
-      price: 279,
-      image: 'https://images.unsplash.com/photo-1583743814966-8936f37f4b30?w=400&h=500&fit=crop'
-    }
-  ];
+  const ProductSection = ({ title, products, loading }) => (
+    <div className="py-12 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">{title}</h2>
+        </div>
+        
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
+            {[...Array(4)].map((_, index) => (
+              <div key={index} className="bg-gray-200 rounded-lg aspect-square animate-pulse"></div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
+            {products.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <>
-      {/* Hero Section */}
-      <div className="bg-white">
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
-          {/* Enhanced Search Bar */}
-          <div className="flex justify-center mb-8 sm:mb-12">
-            <div className="w-full max-w-2xl">
-              {/* Main Search Bar */}
+      {/* Hero Section with Enhanced Search */}
+      <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-[70vh] flex items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="text-center">
+            <h1 className="text-4xl sm:text-6xl font-bold text-gray-900 mb-6">
+              Discover Your Perfect Style
+            </h1>
+            <p className="text-lg sm:text-xl text-gray-600 mb-12 max-w-3xl mx-auto">
+              Explore our curated collection of premium fashion essentials designed for the modern lifestyle
+            </p>
+            
+            {/* Enhanced Search Bar */}
+            <div className="relative max-w-2xl mx-auto mb-8">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                  <Search className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
                   type="text"
-                  placeholder="Search for products, brands, or categories..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setIsSearchFocused(true)}
-                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
                   onKeyPress={handleKeyPress}
-                  className="block w-full pl-10 sm:pl-12 pr-16 sm:pr-24 py-3 sm:py-4 border border-gray-300 rounded-xl leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-gray-500 focus:border-gray-500 shadow-sm text-sm sm:text-lg"
+                  className="w-full pl-10 sm:pl-12 pr-20 sm:pr-24 py-3 sm:py-4 text-base sm:text-lg border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm"
+                  placeholder="Search for products, brands, or categories..."
                 />
-                <div className="absolute inset-y-0 right-0 pr-2 sm:pr-4 flex items-center space-x-1 sm:space-x-2">
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      <X size={14} className="sm:hidden" />
-                      <X size={16} className="hidden sm:block" />
-                    </button>
-                  )}
-                  <button 
-                    className="bg-gray-900 text-white px-3 sm:px-6 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-800 transition-colors"
-                    onClick={() => handleSearch(searchQuery)}
-                  >
+                <button
+                  onClick={() => handleSearch(searchQuery)}
+                  className="absolute inset-y-0 right-0 pr-2 sm:pr-3 flex items-center"
+                >
+                  <span className="bg-blue-600 text-white px-3 sm:px-6 py-1.5 sm:py-2 rounded-xl hover:bg-blue-700 transition-colors duration-200 text-sm sm:text-base font-medium">
                     Search
-                  </button>
-                </div>
+                  </span>
+                </button>
               </div>
 
               {/* Search Suggestions Dropdown */}
-              {isSearchFocused && (
-                <div className="absolute z-50 w-full max-w-2xl mt-2 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-                  {/* Show suggestions only if there are results or no search query */}
-                  {(filteredTrending.length > 0 || filteredRecent.length > 0 || searchQuery === '') ? (
-                    <>
-                      {/* Trending Searches */}
-                      {(filteredTrending.length > 0 || searchQuery === '') && (
-                        <div className="p-4 border-b border-gray-100">
-                          <div className="flex items-center space-x-2 mb-3">
-                            <TrendingUp size={16} className="text-gray-400" />
-                            <span className="text-sm font-medium text-gray-900">Trending Searches</span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {(searchQuery === '' ? trendingSearches : filteredTrending).map((term, index) => (
-                              <button
-                                key={index}
-                                onClick={() => {
-                                  setSearchQuery(term);
-                                  handleSearch(term);
-                                }}
-                                className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition-colors"
-                              >
-                                {term}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Recent Searches */}
-                      {(filteredRecent.length > 0 || searchQuery === '') && (
-                        <div className="p-4">
-                          <div className="flex items-center space-x-2 mb-3">
-                            <Clock size={16} className="text-gray-400" />
-                            <span className="text-sm font-medium text-gray-900">Recent Searches</span>
-                          </div>
-                          <div className="space-y-2">
-                            {(searchQuery === '' ? recentSearches : filteredRecent).map((term, index) => (
-                              <button
-                                key={index}
-                                onClick={() => {
-                                  setSearchQuery(term);
-                                  handleSearch(term);
-                                }}
-                                className="block w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                              >
-                                {term}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    /* No Results Found */
-                    <div className="p-6 text-center">
-                      <p className="text-sm text-gray-500 mb-2">No suggestions found for "{searchQuery}"</p>
-                      <button
-                        onClick={() => handleSearch(searchQuery)}
-                        className="text-sm text-gray-900 hover:underline"
-                      >
-                        Search anyway
-                      </button>
+              {isSearchFocused && (searchQuery || filteredTrending.length > 0 || filteredRecent.length > 0) && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-80 overflow-y-auto">
+                  {/* Close button */}
+                  <div className="flex justify-between items-center p-3 border-b border-gray-100">
+                    <span className="text-sm font-medium text-gray-700">Search Suggestions</span>
+                    <button
+                      onClick={() => setIsSearchFocused(false)}
+                      className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                      <X size={16} className="text-gray-400" />
+                    </button>
+                  </div>
+                  
+                  {/* Trending Searches */}
+                  {filteredTrending.length > 0 && (
+                    <div className="p-3 border-b border-gray-100">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <TrendingUp size={16} className="text-blue-500" />
+                        <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Trending</span>
+                      </div>
+                      <div className="space-y-1">
+                        {filteredTrending.map((term, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleSuggestionClick(term)}
+                            className="w-full text-left px-2 py-1.5 hover:bg-gray-50 rounded-lg transition-colors text-sm text-gray-700"
+                          >
+                            {term}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Recent Searches */}
+                  {filteredRecent.length > 0 && (
+                    <div className="p-3">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Clock size={16} className="text-gray-400" />
+                        <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Recent</span>
+                      </div>
+                      <div className="space-y-1">
+                        {filteredRecent.map((term, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleSuggestionClick(term)}
+                            className="w-full text-left px-2 py-1.5 hover:bg-gray-50 rounded-lg transition-colors text-sm text-gray-700"
+                          >
+                            {term}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
               )}
             </div>
+
+            {/* Quick Access Links */}
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-8">
+              <button onClick={() => navigate('/new')} className="px-4 sm:px-6 py-2 bg-white text-gray-700 border border-gray-200 rounded-full hover:border-gray-300 hover:shadow-md transition-all duration-200 text-sm sm:text-base">
+                New Arrivals
+              </button>
+              <button onClick={() => navigate('/collections')} className="px-4 sm:px-6 py-2 bg-white text-gray-700 border border-gray-200 rounded-full hover:border-gray-300 hover:shadow-md transition-all duration-200 text-sm sm:text-base">
+                Collections
+              </button>
+              <button onClick={() => navigate('/products')} className="px-4 sm:px-6 py-2 bg-white text-gray-700 border border-gray-200 rounded-full hover:border-gray-300 hover:shadow-md transition-all duration-200 text-sm sm:text-base">
+                All Products
+              </button>
+            </div>
           </div>
-
-          {/* Quick Actions */}
-          <div className="flex justify-center mb-6 sm:mb-8">
-            <div className="flex flex-wrap justify-center gap-3 sm:gap-6 text-xs sm:text-sm">
-              <button className="text-gray-600 hover:text-gray-900 transition-colors px-2 py-1">Login</button>
-              <button className="text-gray-600 hover:text-gray-900 transition-colors px-2 py-1">Register</button>
-              <a href="/new" className="text-gray-600 hover:text-gray-900 transition-colors px-2 py-1">New Arrivals</a>
-              <a href="/collections" className="text-gray-600 hover:text-gray-900 transition-colors px-2 py-1">Collections</a>
-            </div>
-          </div>
-
-          {/* Popular Products Section */}
-          <section className="mb-12 sm:mb-16">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 sm:mb-8 text-left">POPULAR PRODUCT</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
-              {popularProducts.map((product) => (
-                <div key={product.id} className="group cursor-pointer">
-                  <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-2 sm:mb-3">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <h3 className="text-xs sm:text-sm text-gray-600 mb-1">V-neck T-Shirt</h3>
-                  <p className="text-xs sm:text-sm font-medium text-gray-900 mb-1 truncate">{product.name}</p>
-                  <p className="text-xs sm:text-sm text-gray-900 font-semibold">${product.price}</p>
-                </div>
-              ))}
-            </div>
-            <div className="text-right mt-4 sm:mt-6">
-              <button className="text-xs sm:text-sm text-gray-600 hover:text-gray-900">See All</button>
-            </div>
-          </section>
-
-          {/* Featured Products Grid */}
-          <section className="mb-12 sm:mb-16">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
-              {featuredProducts.map((product) => (
-                <div key={product.id} className="group cursor-pointer">
-                  <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-2 sm:mb-3">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <h3 className="text-xs sm:text-sm text-gray-600 mb-1">V-neck T-Shirt</h3>
-                  <p className="text-xs sm:text-sm font-medium text-gray-900 mb-1 truncate">{product.name}</p>
-                  <p className="text-xs sm:text-sm text-gray-900 font-semibold">${product.price}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* XIV Collections Section */}
-          <section className="mb-12 sm:mb-16">
-            <div className="text-center mb-6 sm:mb-8">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">XIV</h2>
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">COLLECTIONS</h3>
-              <h4 className="text-lg sm:text-xl text-gray-900">23-24</h4>
-            </div>
-
-            <div className="flex justify-center mb-6 sm:mb-8">
-              <div className="flex flex-wrap justify-center gap-4 sm:gap-8 text-xs sm:text-sm">
-                <button className="text-gray-900 border-b-2 border-gray-900 pb-1">(ALL)</button>
-                <button className="text-gray-600 hover:text-gray-900">Man</button>
-                <button className="text-gray-600 hover:text-gray-900">Women</button>
-                <button className="text-gray-600 hover:text-gray-900">Kid</button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8">
-              {collections.map((product) => (
-                <div key={product.id} className="group cursor-pointer">
-                  <div className="aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden mb-3 sm:mb-4">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <h3 className="text-xs sm:text-sm text-gray-600 mb-1">Cotton T-Shirt</h3>
-                  <p className="text-sm sm:text-base font-medium text-gray-900 mb-1 truncate">{product.name}</p>
-                  <p className="text-sm sm:text-base text-gray-900 font-semibold">${product.price}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Brand Philosophy Section */}
-          <section className="text-center py-12 sm:py-16 bg-gray-50 rounded-2xl px-4 sm:px-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">
-              OUR APPROACH TO FASHION DESIGN
-            </h2>
-            <p className="text-base sm:text-lg text-gray-600 max-w-4xl mx-auto mb-8 sm:mb-12 px-4">
-              At elegant vogue, we blend creativity with craftsmanship to create fashion that transcends trends. Each design is meticulously crafted, ensuring the highest quality across finish.
-            </p>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8 max-w-5xl mx-auto">
-              <div className="aspect-[3/4] rounded-lg overflow-hidden">
-                <img
-                  src="https://images.unsplash.com/photo-1490114538077-0a7f8cb49891?w=400&h=500&fit=crop"
-                  alt="Fashion Design"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="aspect-[3/4] rounded-lg overflow-hidden">
-                <img
-                  src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=400&h=500&fit=crop"
-                  alt="Craftsmanship"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="aspect-[3/4] rounded-lg overflow-hidden sm:col-span-2 md:col-span-1">
-                <img
-                  src="https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?w=400&h=500&fit=crop"
-                  alt="Quality"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
-          </section>
         </div>
       </div>
 
-      {/* CIPR QR Section */}
-      <div className="bg-white py-12 sm:py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="space-y-6 sm:space-y-8">
-            <div>
-              <h2 className="text-4xl sm:text-6xl font-bold text-gray-900">XIV</h2>
-              <h3 className="text-2xl sm:text-4xl font-bold text-gray-900">QR</h3>
+      {/* Popular Products Section */}
+      <ProductSection
+        title="POPULAR PRODUCTS"
+        products={popularProducts}
+        loading={loading}
+      />
+
+      {/* Featured Products Section */}
+      <div className="bg-gray-50">
+        <ProductSection
+          title="FEATURED PRODUCTS"
+          products={featuredProducts}
+          loading={loading}
+        />
+      </div>
+
+      {/* Collections Section */}
+      <ProductSection
+        title="NEW COLLECTIONS"
+        products={collections}
+        loading={loading}
+      />
+
+      {/* QR Code Section */}
+      <div className="py-16 bg-gradient-to-br from-blue-600 to-purple-700">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+            Shop on the Go
+          </h2>
+          <p className="text-lg sm:text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            Scan to discover our latest collections and exclusive offers
+          </p>
+          
+          {/* QR Code Display */}
+          <div className="flex flex-col items-center space-y-4 sm:space-y-6 mt-8 sm:mt-12">
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-8 rounded-2xl shadow-lg">
+              <QRCodeGenerator 
+                url="https://www.youtube.com/shorts/Ay8lynMZ4mE?feature=share" 
+                size={200}
+                className="mx-auto sm:hidden"
+              />
+              <QRCodeGenerator 
+                url="https://www.youtube.com/shorts/Ay8lynMZ4mE?feature=share" 
+                size={250}
+                className="mx-auto hidden sm:block"
+              />
             </div>
-            <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto px-4">
-              Scan to discover our latest collections and exclusive offers
-            </p>
             
-            {/* QR Code Display */}
-            <div className="flex flex-col items-center space-y-4 sm:space-y-6 mt-8 sm:mt-12">
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-8 rounded-2xl shadow-lg">
-                <QRCodeGenerator 
-                  url="https://www.youtube.com/shorts/Ay8lynMZ4mE?feature=share" 
-                  size={200}
-                  className="mx-auto sm:hidden"
-                />
-                <QRCodeGenerator 
-                  url="https://www.youtube.com/shorts/Ay8lynMZ4mE?feature=share" 
-                  size={250}
-                  className="mx-auto hidden sm:block"
-                />
-              </div>
-              
-              <div className="text-center">
-                <p className="text-xs sm:text-sm text-gray-500 mb-3">Point your camera at the QR code</p>
-                <div className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-100 text-blue-800 rounded-full text-xs sm:text-sm font-medium">
-                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span>
-                  Ready to scan
-                </div>
+            <div className="text-center">
+              <p className="text-xs sm:text-sm text-blue-100 mb-3">Point your camera at the QR code</p>
+              <div className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-100 text-blue-800 rounded-full text-xs sm:text-sm font-medium">
+                <span className="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span>
+                Ready to scan
               </div>
             </div>
           </div>
@@ -387,6 +268,9 @@ function Home() {
       </div>
 
       <PromotionProduct />
+
+      {/* Scroll to Top Button */}
+      <ScrollToTop />
     </>
   );
 }
