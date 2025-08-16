@@ -1,13 +1,15 @@
 import { Bell, Home, Package, ShoppingBag, Menu, X } from "lucide-react";
-import { useLocation, Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useLocation, Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, useContext } from "react";
+import { AppContext } from "../Context/AppContext";
 
 function Navbar() {
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
-    
-    // Handle scroll detection
+    const { user, logout, isAuthenticated } = useContext(AppContext);
+    const navigate = useNavigate();
+
     useEffect(() => {
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 10);
@@ -17,18 +19,24 @@ function Navbar() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
     
-    // Close mobile menu when route changes
     useEffect(() => {
         setIsMobileMenuOpen(false);
     }, [location.pathname]);
     
-    // Helper function to check if a path is active
     const isActive = (path) => {
         if (path === '/') {
             return location.pathname === '/';
         }
         return location.pathname.startsWith(path);
     };
+    
+    const handleLogout = async (e) => {
+        e.preventDefault();
+        await logout();
+        navigate("/login");
+    };
+
+    // console.log('Navbar render:', { token: !!token, user: !!user, isAuthenticated });
 
     return (
         <>
@@ -47,7 +55,6 @@ function Navbar() {
                             </Link>
                         </div>
 
-                        {/* Desktop Navigation */}
                         <div className="hidden md:flex items-center space-x-8">
                             <Link
                                 to="/"
@@ -91,9 +98,7 @@ function Navbar() {
                             </Link>
                         </div>
 
-                        {/* Desktop Right Side */}
                         <div className="hidden md:flex items-center space-x-4">
-                            {/* Cart */}
                             <Link 
                                 to="/cart" 
                                 className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
@@ -105,7 +110,6 @@ function Navbar() {
                                 </span>
                             </Link>
 
-                            {/* Notifications */}
                             <button 
                                 className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
                                 aria-label="Notifications - 2 unread"
@@ -116,12 +120,37 @@ function Navbar() {
                                 </span>
                             </button>
 
-                            {/* Profile/Auth Section - Simplified */}
+                            {isAuthenticated ? (
+                                <div className="flex items-center gap-4">
+                                    <span className="text-sm text-gray-700">
+                                        Welcome, {user?.name || 'User'}
+                                    </span>
+                                    <button 
+                                        onClick={handleLogout}
+                                        className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md transition-colors duration-200"
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <Link 
+                                        to="/register" 
+                                        className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md transition-colors duration-200"
+                                    >
+                                        Register
+                                    </Link>
+                                    <Link 
+                                        to="/login" 
+                                        className="px-3 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors duration-200"
+                                    >
+                                        Login
+                                    </Link>
+                                </div>
+                            )}
                         </div>
 
-                        {/* Mobile Right Side */}
                         <div className="md:hidden flex items-center space-x-3">
-                            {/* Mobile Cart */}
                             <Link 
                                 to="/cart" 
                                 className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors duration-200"
@@ -132,7 +161,6 @@ function Navbar() {
                                 </span>
                             </Link>
 
-                            {/* Burger Menu Button */}
                             <button
                                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                                 className="p-2 text-gray-600 hover:text-blue-600 transition-colors duration-200 focus:outline-none"
@@ -145,7 +173,6 @@ function Navbar() {
                 </div>
             </nav>
 
-            {/* Mobile Menu Overlay */}
             {isMobileMenuOpen && (
                 <div 
                     className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
@@ -153,12 +180,10 @@ function Navbar() {
                 />
             )}
 
-            {/* Mobile Slide Menu */}
             <div className={`fixed top-16 left-0 right-0 bg-white shadow-lg z-50 md:hidden transform transition-transform duration-300 ease-in-out ${
                 isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
             }`}>
                 <div className="px-4 py-6 space-y-4">
-                    {/* Navigation Links */}
                     <Link
                         to="/"
                         onClick={() => setIsMobileMenuOpen(false)}
@@ -207,6 +232,40 @@ function Navbar() {
                         <Package size={20} />
                         <span className="font-medium">Products</span>
                     </Link>
+
+                    {/* Mobile Authentication */}
+                    <div className="pt-4 border-t border-gray-200">
+                        {isAuthenticated ? (
+                            <div className="space-y-2">
+                                <div className="px-4 py-2 text-sm text-gray-600">
+                                    Welcome, {user?.name || 'User'}
+                                </div>
+                                <button 
+                                    onClick={handleLogout}
+                                    className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <Link
+                                    to="/register"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="block px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                                >
+                                    Register
+                                </Link>
+                                <Link
+                                    to="/login"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="block px-4 py-3 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors duration-200"
+                                >
+                                    Login
+                                </Link>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </>
