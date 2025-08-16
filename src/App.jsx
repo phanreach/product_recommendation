@@ -1,5 +1,5 @@
 // App.js
-import React from 'react';
+import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 import ErrorBoundary from './components/ErrorBoundary';
@@ -11,14 +11,21 @@ import Collections from './pages/collections';
 import New from './pages/new';
 import Cart from './pages/cart';
 import { SimpleToaster } from './components/ui/simple-toaster';
+import LoginPage from './components/auth/login';
+import RegisterPage from './components/auth/register';
+import { AppContext } from './Context/AppContext';
 
 function App() {
+    const {user} = useContext(AppContext);
+
   return (
     <ErrorBoundary>
         <Router>
           <div className="App">
             <Routes>
               {/* Routes under the main layout */}
+              <Route path="/login" element={user ? <Home/> : <LoginPage />} />
+              <Route path="/register" element={user ? <Home/> : <RegisterPage />} />
               <Route element={<MainLayout />}>
                 {/* Public Routes */}
                 <Route path="/" element={<Home />} />
