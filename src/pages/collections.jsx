@@ -1,52 +1,64 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { getCollections } from '../api/services';
+
 const Collections = () => {
-  const collections = [
-    {
-      id: 1,
-      title: 'XIV Collections 23-24',
-      description: 'Latest fashion trends for the modern gentleman',
-      image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&h=600&fit=crop',
-      products: [
-        {
-          id: 1,
-          name: 'Basic Heavy Weight T-Shirt',
-          price: 199,
-          image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300&h=300&fit=crop'
-        },
-        {
-          id: 2,
-          name: 'Soft Hand Straight Fit Jeans',
-          price: 399,
-          image: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=300&h=300&fit=crop'
-        },
-        {
-          id: 3,
-          name: 'Basic Heavy Weight T-Shirt',
-          price: 199,
-          image: 'https://images.unsplash.com/photo-1583743814966-8936f37f4b30?w=300&h=300&fit=crop'
-        }
-      ]
-    },
-    {
-      id: 2,
-      title: 'Spring Collection',
-      description: 'Fresh styles for the new season',
-      image: 'https://images.unsplash.com/photo-1490114538077-0a7f8cb49891?w=800&h=600&fit=crop',
-      products: [
-        {
-          id: 4,
-          name: 'Lightweight Cotton Shirt',
-          price: 249,
-          image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=300&h=300&fit=crop'
-        },
-        {
-          id: 5,
-          name: 'Casual Polo Shirt',
-          price: 179,
-          image: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=300&h=300&fit=crop'
-        }
-      ]
-    }
-  ];
+  const [collections, setCollections] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchCollections = async () => {
+      try {
+        setLoading(true);
+        const data = await getCollections();
+        setCollections(data.collections || []);
+      } catch (error) {
+        console.error('Error fetching collections:', error);
+        setCollections([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCollections();
+  }, []);
+
+  const handleProductClick = (productId) => {
+    navigate(`/product/${productId}`);
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center mb-12">
+            <div className="h-10 bg-gray-200 rounded w-64 mx-auto mb-4 animate-pulse"></div>
+            <div className="h-6 bg-gray-200 rounded w-96 mx-auto animate-pulse"></div>
+          </div>
+          <div className="space-y-16">
+            {[...Array(2)].map((_, index) => (
+              <div key={index} className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                <div className="aspect-[4/3] bg-gray-200 rounded-lg animate-pulse"></div>
+                <div className="space-y-6">
+                  <div className="h-8 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                  <div className="h-6 bg-gray-200 rounded w-full animate-pulse"></div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="space-y-2">
+                        <div className="aspect-square bg-gray-200 rounded-lg animate-pulse"></div>
+                        <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white min-h-screen">
@@ -83,8 +95,12 @@ const Collections = () => {
 
                 {/* Featured Products */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {collection.products.map((product) => (
-                    <div key={product.id} className="group cursor-pointer">
+                  {collection.products?.map((product) => (
+                    <div 
+                      key={product.id} 
+                      className="group cursor-pointer"
+                      onClick={() => handleProductClick(product.id)}
+                    >
                       <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-2">
                         <img
                           src={product.image}

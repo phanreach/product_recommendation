@@ -1,45 +1,28 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Minus, Plus, Trash2, ShoppingCart, RefreshCw, AlertCircle } from 'lucide-react';
-import { getCart, purchaseProducts } from '../api/services';
+import { purchaseProducts } from '../api/services';
 import { useErrorHandler } from '../hooks/useErrorHandler';
-import { useAsyncState } from '../hooks/useAsyncState';
+import { useCart } from '../hooks/useCart';
 
 const Cart = () => {
   const { handleError, showToast } = useErrorHandler();
-  const {
-    data: cartItems,
-    loading,
-    error,
-    execute: executeCartFetch,
-    setData: setCartItems
-  } = useAsyncState([]);
+  const { 
+    cartItems, 
+    loading, 
+    fetchCart, 
+    updateItemQuantity, 
+    removeItemFromCart 
+  } = useCart();
 
   const [purchasing, setPurchasing] = useState(false);
   const [success, setSuccess] = useState('');
+  const [loadingQuantity, setLoadingQuantity] = useState(null);
+  const [loadingRemove, setLoadingRemove] = useState(null);
 
-  const fetchCart = useCallback(async () => {
-    const fetchCartData = async () => {
-      try {
-        const data = await getCart();
-        return data.cart || data || [];
-      } catch {
-        // Return empty cart if there's an error
-        return [];
-      }
-    };
-
-    return executeCartFetch(fetchCartData).catch((err) => {
-      handleError(err, {
-        fallbackMessage: 'Failed to load cart items.',
-        showToast: true,
-        context: 'cart_fetch'
-      });
-    });
-  }, [executeCartFetch, handleError]);
-
+  // Cart items come from context, no need to fetch separately
   useEffect(() => {
-    fetchCart();
-  }, [fetchCart]);
+    // Context will handle fetching
+  }, []);
 
   const handlePurchase = async () => {
     if (cartItems.length === 0) {
@@ -81,20 +64,12 @@ const Cart = () => {
 
   const updateQuantity = async (id, newQuantity) => {
     try {
-      // This would update the cart via API in a real application
       const updatedQuantity = Math.max(1, newQuantity);
+      setLoadingQuantity(id);
       
-      // Update local state optimistically
-      setCartItems(items => 
-        items.map(item => 
-          item.id === id ? { ...item, quantity: updatedQuantity } : item
-        )
-      );
-      
+      // Use context method which handles API call and state update
+      await updateItemQuantity(id, updatedQuantity);
       showToast(`Quantity updated to ${updatedQuantity}`, 'success');
-      
-      // Here you would call an API to update the quantity
-      // await updateCartItemQuantity(id, updatedQuantity);
       
     } catch (err) {
       handleError(err, {
@@ -102,21 +77,18 @@ const Cart = () => {
         showToast: true,
         context: 'update_quantity'
       });
-      
-      // Revert optimistic update on error
-      fetchCart();
+    } finally {
+      setLoadingQuantity(null);
     }
   };
 
   const removeItem = async (id) => {
     try {
-      // Update local state optimistically
-      setCartItems(items => items.filter(item => item.id !== id));
+      setLoadingRemove(id);
       
+      // Use context method which handles API call and state update
+      await removeItemFromCart(id);
       showToast('Item removed from cart', 'success');
-      
-      // Here you would call an API to remove the item
-      // await removeCartItem(id);
       
     } catch (err) {
       handleError(err, {
@@ -124,9 +96,8 @@ const Cart = () => {
         showToast: true,
         context: 'remove_item'
       });
-      
-      // Revert optimistic update on error
-      fetchCart();
+    } finally {
+      setLoadingRemove(null);
     }
   };
 
@@ -148,22 +119,7 @@ const Cart = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Shopping Cart</h1>
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded text-sm flex items-center gap-2">
-              <AlertCircle size={16} />
-              <span>{error.message || 'Failed to load cart'}</span>
-              {error.canRetry && (
-                <button
-                  onClick={fetchCart}
-                  className="ml-2 text-red-800 hover:text-red-900 underline text-sm flex items-center gap-1"
-                  disabled={loading}
-                >
-                  <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-                  Retry
-                </button>
-              )}
-            </div>
-          )}
+
         </div>
 
         {success && (
@@ -222,14 +178,16 @@ const Cart = () => {
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                          className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                          disabled={loadingQuantity === item.id}
+                          className="p-1 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
                         >
                           <Minus size={16} />
                         </button>
                         <span className="w-8 text-center font-medium">{item.quantity}</span>
                         <button
                           onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                          disabled={loadingQuantity === item.id}
+                          className="p-1 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
                         >
                           <Plus size={16} />
                         </button>
@@ -238,9 +196,14 @@ const Cart = () => {
                       {/* Remove Button */}
                       <button
                         onClick={() => removeItem(item.id)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                        disabled={loadingRemove === item.id}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50"
                       >
-                        <Trash2 size={16} />
+                        {loadingRemove === item.id ? (
+                          <RefreshCw size={16} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={16} />
+                        )}
                       </button>
                     </div>
                   ))}

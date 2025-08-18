@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, Share2, Star, ShoppingCart, Plus, Minus, Shield, Truck, RotateCcw } from 'lucide-react';
-import { getProductById } from '../api/services';
+import { ArrowLeft, Heart, Share2, Star, ShoppingCart, Plus, Minus } from 'lucide-react';
+import { getProductById, addToCart } from '../api/services';
 import CiprRecommendation from '../components/CiprRecommendation';
+import { useCart } from '../hooks/useCart';
 
 function ProductDetail() {
   const { id } = useParams();
@@ -15,6 +16,9 @@ function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [cartSuccess, setCartSuccess] = useState(false);
+  const { addItemToCart, fetchCart } = useCart();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -25,25 +29,16 @@ function ProductDetail() {
         // Enhanced product data for better demo
         const enhancedProduct = {
           ...response.product,
-          images: [
-            response.product.image,
-            `${response.product.image}?w=800&h=800&fit=crop&crop=center&auto=format&q=80&variant=2`,
-            `${response.product.image}?w=800&h=800&fit=crop&crop=center&auto=format&q=80&variant=3`,
-            `${response.product.image}?w=800&h=800&fit=crop&crop=center&auto=format&q=80&variant=4`
-          ],
+          // Use images from enhanceProduct function (already has local images mapped by category)
+          images: response.product.images && response.product.images.length > 0 
+            ? response.product.images 
+            : [response.product.image], // Fallback to single image if no images array
           rating: Math.random() * 2 + 3,
           reviewCount: Math.floor(Math.random() * 500) + 50,
           sizes: ['XS', 'S', 'M', 'L', 'XL'],
           colors: ['Black', 'White', 'Gray', 'Navy'],
           description: `Experience premium quality with our ${response.product.name}. Crafted with attention to detail and designed for modern living, this piece combines style and functionality seamlessly.`,
-          features: [
-            'Premium quality materials',
-            'Modern minimalist design',
-            'Versatile and timeless',
-            'Easy care and maintenance'
-          ],
-          inStock: true,
-          originalPrice: response.product.price + Math.floor(Math.random() * 50) + 20
+          inStock: true
         };
         
         setProduct(enhancedProduct);
@@ -66,14 +61,46 @@ function ProductDetail() {
     setQuantity(prev => Math.max(1, prev + change));
   };
 
-  const handleAddToCart = () => {
-    console.log('Adding to cart:', {
-      productId: product.id,
-      size: selectedSize,
-      color: selectedColor,
-      quantity
-    });
-    // Add to cart logic here
+  const handleAddToCart = async () => {
+    if (!product) return;
+    
+    try {
+      setAddingToCart(true);
+      setCartSuccess(false);
+      
+      // Add to cart via API
+      await addToCart(product.id, quantity);
+      
+      // Update local cart context
+      addItemToCart({
+        id: product.id,
+        product_id: product.id,
+        product_name: product.name,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        quantity: quantity,
+        size: selectedSize,
+        color: selectedColor
+      });
+      
+      // Also refresh cart from server to stay in sync
+      fetchCart();
+      
+      setCartSuccess(true);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setCartSuccess(false);
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      // You could add toast notification here if you have it
+      alert('Failed to add to cart. Please try again.');
+    } finally {
+      setAddingToCart(false);
+    }
   };
 
   const handleWishlist = () => {
@@ -301,45 +328,39 @@ function ProductDetail() {
             <div className="space-y-4">
               <button
                 onClick={handleAddToCart}
-                className="w-full bg-gray-900 text-white py-3 px-6 rounded-lg hover:bg-gray-800 transition-colors font-medium flex items-center justify-center space-x-2"
+                disabled={addingToCart}
+                className={`w-full py-3 px-6 rounded-lg transition-colors font-medium flex items-center justify-center space-x-2 ${
+                  cartSuccess 
+                    ? 'bg-green-600 text-white hover:bg-green-700' 
+                    : addingToCart
+                    ? 'bg-gray-600 text-white cursor-not-allowed'
+                    : 'bg-gray-900 text-white hover:bg-gray-800'
+                }`}
               >
-                <ShoppingCart size={20} />
-                <span>Add to Cart</span>
+                {addingToCart ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Adding...</span>
+                  </>
+                ) : cartSuccess ? (
+                  <>
+                    <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center">
+                      <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                    </div>
+                    <span>Added to Cart!</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart size={20} />
+                    <span>Add to Cart</span>
+                  </>
+                )}
               </button>
               
               <button className="w-full border border-gray-200 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center justify-center space-x-2">
                 <Share2 size={20} />
                 <span>Share</span>
               </button>
-            </div>
-
-            {/* Features */}
-            <div className="border-t border-gray-200 pt-8">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Features</h3>
-              <ul className="space-y-2">
-                {product.features.map((feature, index) => (
-                  <li key={index} className="flex items-center text-gray-600">
-                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-3"></div>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Shipping & Returns */}
-            <div className="border-t border-gray-200 pt-8 space-y-4">
-              <div className="flex items-center space-x-3 text-gray-600">
-                <Truck size={20} />
-                <span>Free shipping on orders over $75</span>
-              </div>
-              <div className="flex items-center space-x-3 text-gray-600">
-                <RotateCcw size={20} />
-                <span>30-day return policy</span>
-              </div>
-              <div className="flex items-center space-x-3 text-gray-600">
-                <Shield size={20} />
-                <span>2-year warranty included</span>
-              </div>
             </div>
           </div>
         </div>

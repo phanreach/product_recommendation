@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
-import { getProducts } from '../api/services';
+import { getProductRecommendations, getRecommendations } from '../api/services';
 
 function CiprRecommendation({ currentProductId }) {
   const navigate = useNavigate();
@@ -13,23 +13,61 @@ function CiprRecommendation({ currentProductId }) {
     const fetchRecommendations = async () => {
       try {
         setLoading(true);
-        const response = await getProducts();
+        let response;
         
-        // Filter out current product and get random recommendations
-        const otherProducts = response.products?.filter(p => p.id !== currentProductId) || [];
+        // Try multiple approaches to get recommendations
+        if (currentProductId) {
+          try {
+            // First try product-specific recommendations
+            response = await getProductRecommendations(currentProductId, 8);
+          } catch {
+            try {
+              // Fall back to general recommendations
+              response = await getRecommendations(null, 8);
+            } catch {
+              // Final fallback: import and use getProducts directly
+              const { getProducts } = await import('../api/services');
+              const productsResponse = await getProducts({ limit: 8 });
+              response = { recommendations: productsResponse.products || [] };
+            }
+          }
+        } else {
+          try {
+            // Use general recommendations as primary approach
+            response = await getRecommendations(null, 8);
+          } catch {
+            // Fallback: import and use getProducts directly
+            const { getProducts } = await import('../api/services');
+            const productsResponse = await getProducts({ limit: 8 });
+            response = { recommendations: productsResponse.products || [] };
+          }
+        }
+        
+        // Products are already filtered to exclude current product
+        const otherProducts = response.recommendations || [];
+        
+        // Filter out current product if it somehow made it through
+        const filteredProducts = currentProductId 
+          ? otherProducts.filter(product => product.id !== currentProductId)
+          : otherProducts;
         
         // Enhanced products with additional data for better display
-        const enhancedProducts = otherProducts.slice(0, 8).map(product => ({
+        const enhancedProducts = filteredProducts.slice(0, 8).map(product => ({
           ...product,
           rating: Math.random() * 2 + 3, // Random rating between 3-5
-          reviewCount: Math.floor(Math.random() * 200) + 10,
-          originalPrice: product.price + Math.floor(Math.random() * 50) + 10,
-          discount: Math.floor(Math.random() * 30) + 5
+          reviewCount: Math.floor(Math.random() * 200) + 10
         }));
         
         setRecommendations(enhancedProducts);
+        
+        // Only log in development mode
+        if (import.meta.env.DEV && enhancedProducts.length > 0) {
+          console.log(`✅ Loaded ${enhancedProducts.length} product recommendations`);
+        }
       } catch (error) {
-        console.error('Error fetching recommendations:', error);
+        if (import.meta.env.DEV) {
+          console.error('All recommendation methods failed:', error);
+        }
         setRecommendations([]);
       } finally {
         setLoading(false);
@@ -156,11 +194,6 @@ function CiprRecommendation({ currentProductId }) {
                   <span className="font-medium text-gray-900">
                     ${product.price}
                   </span>
-                  {product.originalPrice > product.price && (
-                    <span className="text-sm text-gray-400 line-through">
-                      ${product.originalPrice}
-                    </span>
-                  )}
                 </div>
               </div>
             </div>

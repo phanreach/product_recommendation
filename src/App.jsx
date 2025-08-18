@@ -14,12 +14,14 @@ import { SimpleToaster } from './components/ui/simple-toaster';
 import LoginPage from './components/auth/login';
 import RegisterPage from './components/auth/register';
 import { AppContext } from './Context/AppContext';
+import CartProvider from './context/CartContext';
 
 function App() {
     const {user} = useContext(AppContext);
 
   return (
     <ErrorBoundary>
+      <CartProvider>
         <Router>
           <div className="App">
             <Routes>
@@ -39,6 +41,7 @@ function App() {
             <SimpleToaster />
           </div>
         </Router>
+      </CartProvider>
     </ErrorBoundary>
   );
 }

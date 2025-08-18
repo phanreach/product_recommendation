@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Heart, ImageOff } from 'lucide-react';
 import { addToCart } from '../api/services';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useCart } from '../hooks/useCart';
 
 function ProductCard({ product }) {
   const { handleError, showToast } = useErrorHandler();
   const navigate = useNavigate();
+  const { fetchCart } = useCart();
   const [addingToCart, setAddingToCart] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -19,9 +21,16 @@ function ProductCard({ product }) {
   const handleAddToCart = async () => {
     try {
       setAddingToCart(true);
-      await addToCart(product.id, 1);
-      setAddedToCart(true);
+      console.log('ProductCard: Adding product to cart:', product.id);
       
+      await addToCart(product.id, 1);
+      console.log('ProductCard: Successfully added to cart, now refreshing...');
+      
+      // Refresh cart context after successful API call
+      await fetchCart();
+      console.log('ProductCard: Cart refreshed');
+      
+      setAddedToCart(true);
       showToast('Added to cart successfully!', 'success');
       
       // Reset success state after 2 seconds
@@ -126,15 +135,41 @@ function ProductCard({ product }) {
       </div>
       
       <div className="p-4">
-        <p className="text-xs text-gray-500 mb-1">{product.category || product.type}</p>
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-xs text-gray-500">{product.category || product.type}</p>
+          {product.season && (
+            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+              {product.season}
+            </span>
+          )}
+        </div>
         <h3 
           className="text-sm font-medium text-gray-900 mb-2 line-clamp-2 cursor-pointer hover:text-blue-600 transition-colors"
           onClick={handleProductClick}
         >
           {product.name}
         </h3>
+        
+        {/* Enhanced product details */}
+        {(product.color || product.size) && (
+          <div className="flex items-center gap-2 mb-2">
+            {product.color && (
+              <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                {product.color}
+              </span>
+            )}
+            {product.size && (
+              <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                {product.size}
+              </span>
+            )}
+          </div>
+        )}
+        
         <div className="flex items-center justify-between">
-          <p className="text-lg font-semibold text-gray-900">${product.price}</p>
+          <div className="flex flex-col">
+            <p className="text-lg font-semibold text-gray-900">${product.price}</p>
+          </div>
           
           {/* Mobile Add to Cart Button */}
           <button

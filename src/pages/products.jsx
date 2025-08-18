@@ -5,61 +5,10 @@ import ProductCard from '../components/ProductCard';
 import ProductSkeleton from '../components/ProductSkeleton';
 import ScrollToTop from '../components/ScrollToTop';
 import Toast from '../components/Toast';
+import ApiStatusBanner from '../components/ApiStatusBanner';
 import useDebounce from '../hooks/useDebounce';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useAsyncState } from '../hooks/useAsyncState';
-
-// Fallback product data in case API is not available
-const fallbackProducts = [
-  {
-    id: 1,
-    name: 'Basic Slim Fit T-Shirt',
-    type: 'Cotton T Shirt',
-    price: 199,
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop',
-    category: 'NEW'
-  },
-  {
-    id: 2,
-    name: 'Basic Heavy Weight T-Shirt', 
-    type: 'Crewneck T-Shirt',
-    price: 199,
-    image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400&h=400&fit=crop',
-    category: 'NEW'
-  },
-  {
-    id: 3,
-    name: 'Basic Cotton Hoodie',
-    type: 'Hooded Sweatshirt',
-    price: 299,
-    image: 'https://images.unsplash.com/photo-1583743814966-8936f37f4b30?w=400&h=400&fit=crop',
-    category: 'NEW'
-  },
-  {
-    id: 4,
-    name: 'Classic Denim Jacket',
-    type: 'Denim Outerwear',
-    price: 399,
-    image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400&h=400&fit=crop',
-    category: 'OUTERWEAR'
-  },
-  {
-    id: 5,
-    name: 'Summer Polo Shirt',
-    type: 'Polo Shirt',
-    price: 159,
-    image: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=400&h=400&fit=crop',
-    category: 'POLO'
-  },
-  {
-    id: 6,
-    name: 'Relaxed Fit Jeans',
-    type: 'Denim Pants',
-    price: 249,
-    image: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=400&h=400&fit=crop',
-    category: 'PANTS'
-  }
-];
 
 const Products = () => {
   const { handleError } = useErrorHandler();
@@ -67,8 +16,7 @@ const Products = () => {
     data: products,
     loading,
     error,
-    execute: executeProductFetch,
-    setData: setProducts
+    execute: executeProductFetch
   } = useAsyncState([]);
 
   const [activeFilters, setActiveFilters] = useState({
@@ -81,8 +29,9 @@ const Products = () => {
     ratings: false
   });
 
-  const [selectedCategory, setSelectedCategory] = useState('NEW');
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [apiDown, setApiDown] = useState(false);
 
   // Debounce search query for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
@@ -92,38 +41,40 @@ const Products = () => {
     const fetchProductsData = async () => {
       try {
         const data = await getProducts();
-        return data.products || data || fallbackProducts;
+        return data.products || [];
       } catch (err) {
-        // Use fallback data if API fails but still throw to trigger error handling
-        setProducts(fallbackProducts);
+        console.error('Failed to fetch products:', err);
         throw err;
       }
     };
 
     executeProductFetch(fetchProductsData).catch((err) => {
+      // Check if it's an API server error
+      if (err.message.includes('500') || err.message.includes('Failed to fetch')) {
+        setApiDown(true);
+      }
       handleError(err, {
-        fallbackMessage: 'Failed to load products. Using demo data.',
+        fallbackMessage: 'Failed to load products. Please try again.',
         showToast: true,
         context: 'product_fetch'
       });
     });
-  }, [executeProductFetch, handleError, setProducts]);
+  }, [executeProductFetch, handleError]);
 
   const fetchProducts = async () => {
     const fetchProductsData = async () => {
       try {
         const data = await getProducts();
-        return data.products || data || fallbackProducts;
+        return data.products || [];
       } catch (err) {
-        // Use fallback data if API fails but still throw to trigger error handling
-        setProducts(fallbackProducts);
+        console.error('Failed to fetch products:', err);
         throw err;
       }
     };
 
     return executeProductFetch(fetchProductsData).catch((err) => {
       handleError(err, {
-        fallbackMessage: 'Failed to load products. Using demo data.',
+        fallbackMessage: 'Failed to load products. Please try again.',
         showToast: true,
         context: 'product_fetch_retry'
       });
@@ -134,11 +85,26 @@ const Products = () => {
     fetchProducts();
   };
 
-  // Filter products based on search and category
+  // Enhanced filtering with better category matching
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-                         (product.type && product.type.toLowerCase().includes(debouncedSearchQuery.toLowerCase()));
-    const matchesCategory = selectedCategory === 'NEW' || product.category === selectedCategory;
+                         (product.description && product.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase())) ||
+                         (product.category && product.category.toLowerCase().includes(debouncedSearchQuery.toLowerCase()));
+    
+    let matchesCategory = true;
+    if (selectedCategory !== 'ALL') {
+      if (selectedCategory === 'NEW' || selectedCategory === 'LATEST') {
+        // Show latest products (this would need API categorization)
+        matchesCategory = true; // For now, show all as we can't distinguish without timestamps
+      } else if (selectedCategory === 'BEST SELLERS') {
+        matchesCategory = true; // Similar issue - need API categorization
+      } else if (selectedCategory === 'RECOMMENDED') {
+        matchesCategory = true;
+      } else {
+        matchesCategory = product.category === selectedCategory;
+      }
+    }
+    
     return matchesSearch && matchesCategory;
   });
 
@@ -150,8 +116,8 @@ const Products = () => {
   };
 
   const categories = [
-    'NEW', 'BEST SELLERS', 'SHIRTS', 'T-SHIRTS', 'POLO SHIRTS', 'SHORTS', 
-    'JEANS', 'SUIT', 'JACKETS', 'COAT'
+    'ALL', 'NEW', 'BEST SELLERS', 'RECOMMENDED', 'COAT', 'SUIT', 'SHOES', 
+    'PYJAMAS', 'SHORT', 'DRESS', 'UNDIES', 'JACKET', 'T-SHIRT', 'SPORTWEAR', 'HAT'
   ];
 
   const sizes = ['XS', 'S', 'M', 'L', 'XL', '2X'];
@@ -169,9 +135,37 @@ const Products = () => {
     );
   }
 
+  const handleRetryApi = () => {
+    setApiDown(false);
+    // Re-fetch products
+    const fetchProductsData = async () => {
+      try {
+        const data = await getProducts();
+        return data.products || [];
+      } catch (err) {
+        console.error('Failed to fetch products:', err);
+        if (err.message.includes('500') || err.message.includes('Failed to fetch')) {
+          setApiDown(true);
+        }
+        throw err;
+      }
+    };
+
+    executeProductFetch(fetchProductsData).catch((err) => {
+      handleError(err, {
+        fallbackMessage: 'Failed to load products. Please try again.',
+        showToast: true,
+        context: 'product_fetch_retry'
+      });
+    });
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* API Status Banner */}
+        {apiDown && <ApiStatusBanner onRetry={handleRetryApi} />}
+        
         {/* Breadcrumb */}
         <div className="flex items-center space-x-2 text-sm text-gray-500 mb-6">
           <span>Home</span>

@@ -2,6 +2,7 @@ import PromotionProduct from "../components/promotion-product";
 import QRCodeGenerator from "../components/qr-code-generator";
 import ProductCard from "../components/ProductCard";
 import ScrollToTop from "../components/ScrollToTop";
+import ApiStatusBanner from "../components/ApiStatusBanner";
 import { Search, TrendingUp, Clock, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -14,23 +15,37 @@ function Home() {
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [apiDown, setApiDown] = useState(false);
   const navigate = useNavigate();
 
   const trendingSearches = ['Basic T-Shirt', 'Denim Jacket', 'Polo Shirt', 'Chino Pants'];
   const recentSearches = ['Cotton Shirt', 'Black Jeans', 'Summer Collection'];
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchHomeData = async () => {
       try {
-        const response = await getProducts();
-        const products = response.products || [];
+        setLoading(true);
         
-        // Distribute products across different sections
-        setPopularProducts(products.slice(0, 4));
-        setFeaturedProducts(products.slice(4, 8));
-        setCollections(products.slice(8, 12));
+        // Fetch all products and then filter by real categories
+        const allProducts = await getProducts();
+        
+        // Get different categories that actually exist in the API
+        const products = allProducts.products || [];
+        
+        // Split products into different sections
+        const popularData = { products: products.slice(0, 4) }; // First 4 products
+        const featuredData = { products: products.slice(4, 8) }; // Next 4 products  
+        const collectionsData = { products: products.slice(8, 12) }; // Next 4 products
+        
+        setPopularProducts(popularData.products || []);
+        setFeaturedProducts(featuredData.products || []);
+        setCollections(collectionsData.products || []);
       } catch (error) {
-        console.error('Error fetching products:', error);
+        console.error('Error fetching home data:', error);
+        // Check if it's an API server error
+        if (error.message.includes('500') || error.message.includes('Failed to fetch')) {
+          setApiDown(true);
+        }
         setPopularProducts([]);
         setFeaturedProducts([]);
         setCollections([]);
@@ -39,7 +54,7 @@ function Home() {
       }
     };
 
-    fetchProducts();
+    fetchHomeData();
   }, []);
 
   const handleSearch = (query) => {
@@ -95,8 +110,49 @@ function Home() {
     </div>
   );
 
+  const handleRetryApi = () => {
+    setApiDown(false);
+    setLoading(true);
+    // Re-fetch data
+    const fetchHomeData = async () => {
+      try {
+        // Fetch all products and then filter by real categories
+        const allProducts = await getProducts();
+        const products = allProducts.products || [];
+        
+        // Split products into different sections
+        const popularData = { products: products.slice(0, 4) };
+        const featuredData = { products: products.slice(4, 8) };
+        const collectionsData = { products: products.slice(8, 12) };
+        
+        setPopularProducts(popularData.products || []);
+        setFeaturedProducts(featuredData.products || []);
+        setCollections(collectionsData.products || []);
+        setApiDown(false);
+      } catch (error) {
+        console.error('Error fetching home data:', error);
+        if (error.message.includes('500') || error.message.includes('Failed to fetch')) {
+          setApiDown(true);
+        }
+        setPopularProducts([]);
+        setFeaturedProducts([]);
+        setCollections([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHomeData();
+  };
+
   return (
     <>
+      {/* API Status Banner */}
+      {apiDown && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          <ApiStatusBanner onRetry={handleRetryApi} />
+        </div>
+      )}
+      
       {/* Hero Section with Enhanced Search */}
       <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-[70vh] flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
@@ -208,25 +264,25 @@ function Home() {
         </div>
       </div>
 
-      {/* Popular Products Section */}
+      {/* Best Selling Products Section */}
       <ProductSection
-        title="POPULAR PRODUCTS"
+        title="BEST SELLING PRODUCTS"
         products={popularProducts}
         loading={loading}
       />
 
-      {/* Featured Products Section */}
+      {/* Latest Arrivals Section */}
       <div className="bg-gray-50">
         <ProductSection
-          title="FEATURED PRODUCTS"
+          title="LATEST ARRIVALS"
           products={featuredProducts}
           loading={loading}
         />
       </div>
 
-      {/* Collections Section */}
+      {/* Recommended Products Section */}
       <ProductSection
-        title="NEW COLLECTIONS"
+        title="RECOMMENDED FOR YOU"
         products={collections}
         loading={loading}
       />
