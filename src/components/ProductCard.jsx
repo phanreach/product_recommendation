@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Heart, ImageOff } from 'lucide-react';
 import { addToCart } from '../api/services';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { useCart } from '../hooks/useCart';
+import { AppContext } from '../Context/AppContext';
 
 function ProductCard({ product }) {
   const { handleError, showToast } = useErrorHandler();
@@ -13,13 +14,23 @@ function ProductCard({ product }) {
   const [addedToCart, setAddedToCart] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+  const { isAuthenticated } = useContext(AppContext);
 
   const handleProductClick = () => {
-    navigate(`/product/${product.id}`);
+    if (isAuthenticated) {
+      navigate(`/product/${product.id}`);
+    } else {
+      handleError('Please log in to view product details.', 'error');
+      navigate('/login', { state: { from: `/product/${product.id}` } });
+    }
   };
 
   const handleAddToCart = async () => {
     try {
+      if (!isAuthenticated) {
+        handleError('Please log in to add items to your cart.', 'error');
+        return;
+      }
       setAddingToCart(true);
       console.log('ProductCard: Adding product to cart:', product.id);
       
@@ -31,7 +42,7 @@ function ProductCard({ product }) {
       console.log('ProductCard: Cart refreshed');
       
       setAddedToCart(true);
-      showToast('Added to cart successfully!', 'success');
+      handleError('Added to cart successfully!', 'success');
       
       // Reset success state after 2 seconds
       setTimeout(() => {

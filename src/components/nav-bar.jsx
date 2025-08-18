@@ -35,7 +35,7 @@ function Navbar() {
     const handleLogout = async (e) => {
         e.preventDefault();
         await logout();
-        navigate("/login");
+        navigate("/");
     };
 
     // console.log('Navbar render:', { token: !!token, user: !!user, isAuthenticated });

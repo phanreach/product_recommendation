@@ -8,6 +8,7 @@ import Home from './pages/home';
 import Products from './pages/products';
 import ProductDetail from './pages/product-detail';
 import Collections from './pages/collections';
+import NotFoundPage from './pages/notfound';
 import New from './pages/new';
 import Cart from './pages/cart';
 import { SimpleToaster } from './components/ui/simple-toaster';
@@ -37,6 +38,8 @@ function App() {
                 <Route path="/new" element={<New />} />
                 <Route path="/cart" element={<Cart />} />
               </Route>
+
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
             <SimpleToaster />
           </div>
