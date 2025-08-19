@@ -22,37 +22,33 @@ function Home() {
   const recentSearches = ['Cotton Shirt', 'Black Jeans', 'Summer Collection'];
 
   useEffect(() => {
-    const fetchHomeData = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch all products and then filter by real categories
-        const allProducts = await getProducts();
-        
-        // Get different categories that actually exist in the API
-        const products = allProducts.products || [];
-        
-        // Split products into different sections
-        const popularData = { products: products.slice(0, 4) }; // First 4 products
-        const featuredData = { products: products.slice(4, 8) }; // Next 4 products  
-        const collectionsData = { products: products.slice(8, 12) }; // Next 4 products
-        
-        setPopularProducts(popularData.products || []);
-        setFeaturedProducts(featuredData.products || []);
-        setCollections(collectionsData.products || []);
-      } catch (error) {
-        console.error('Error fetching home data:', error);
-        // Check if it's an API server error
-        if (error.message.includes('500') || error.message.includes('Failed to fetch')) {
-          setApiDown(true);
-        }
-        setPopularProducts([]);
-        setFeaturedProducts([]);
-        setCollections([]);
-      } finally {
-        setLoading(false);
+  const fetchHomeData = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch all products
+      const { latest, bestSelling, recommended } = await getProducts({ limit: 4 });
+
+      // Split into sections
+      const popularData = { products: bestSelling.slice(0, 4) };
+      const featuredData = { products: latest.slice(0, 4) };
+      const collectionsData = { products: recommended.slice(0, 4) };
+
+      setPopularProducts(popularData.products);
+      setFeaturedProducts(featuredData.products);
+      setCollections(collectionsData.products);
+    } catch (error) {
+      console.error('Error fetching home data:', error);
+      if (error.message.includes('500') || error.message.includes('Failed to fetch')) {
+        setApiDown(true);
       }
-    };
+      setPopularProducts([]);
+      setFeaturedProducts([]);
+      setCollections([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
     fetchHomeData();
   }, []);
@@ -287,6 +283,14 @@ function Home() {
         loading={loading}
       />
 
+      {/* AI Badge */}
+      <div className="text-center pb-12">
+        <div className="inline-flex items-center space-x-2 bg-gray-100 px-4 py-2 rounded-full">
+          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+          <span className="text-sm text-gray-600 font-medium">Powered by AI Algorithm</span>
+        </div>
+      </div>
+
       {/* QR Code Section */}
       <div className="py-16 bg-gradient-to-br from-blue-600 to-purple-700">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -323,7 +327,7 @@ function Home() {
         </div>
       </div>
 
-      <PromotionProduct />
+      {/* <PromotionProduct /> */}
 
       {/* Scroll to Top Button */}
       <ScrollToTop />

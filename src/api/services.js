@@ -225,38 +225,46 @@ const enhanceProduct = (product) => {
 export const getProducts = async (params = {}) => {
   try {
     const response = await api.get(ENDPOINTS.PRODUCTS, { params });
-    
-    // Handle the API response structure
-    let allProducts = [];
-    
-    if (response.data?.latest_products) {
-      allProducts = [
-        ...response.data.latest_products,
-        ...(response.data.best_selling_products || []),
-        ...(response.data.recommended_products || [])
-      ];
-    } else if (response.data?.products) {
-      allProducts = response.data.products;
-    } else if (Array.isArray(response.data)) {
-      allProducts = response.data;
-    } else {
+
+    // Laravel response shape
+    const { latest_products, best_selling_products, recommended_products } = response.data;
+
+    if (!latest_products && !best_selling_products && !recommended_products) {
       throw new Error('Invalid API response structure');
     }
-    
-    // Filter out invalid products and enhance the valid ones
-    const validProducts = allProducts.filter(product => 
-      product && typeof product === 'object' && product.id
+
+    // Combine products from API
+    const allProducts = [
+      ...(latest_products || []),
+      ...(best_selling_products || []),
+      ...(recommended_products || [])
+    ];
+
+    // Filter out invalid products
+    const validProducts = allProducts.filter(
+      (product) => product && typeof product === 'object' && product.id
     );
-    
+
     if (validProducts.length === 0) {
       throw new Error('No valid products received from API');
     }
-    
+
+    // Enhance products
     const enhancedProducts = validProducts.map(enhanceProduct);
-    return { products: enhancedProducts };
+
+    return {
+      latest: (latest_products || []).map(enhanceProduct),
+      bestSelling: (best_selling_products || []).map(enhanceProduct),
+      recommended: (recommended_products || []).map(enhanceProduct),
+      all: enhancedProducts
+    };
   } catch (error) {
     console.error('Products API call failed:', error.message);
-    throw new Error(error.response?.data?.message || error.message || 'Failed to fetch products from API');
+    throw new Error(
+      error.response?.data?.message ||
+      error.message ||
+      'Failed to fetch products from API'
+    );
   }
 };
 
