@@ -15,7 +15,7 @@ import { SimpleToaster } from './components/ui/simple-toaster';
 import LoginPage from './components/auth/login';
 import RegisterPage from './components/auth/register';
 import { AppContext } from './Context/AppContext';
-import CartProvider from './context/CartContext';
+// import {CartContext } from './Context/CartContext';
 
 function App() {
     const {user} = useContext(AppContext);
