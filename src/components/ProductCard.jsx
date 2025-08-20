@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Heart, ImageOff } from 'lucide-react';
 import { addToCart } from '../api/services';
 import { useErrorHandler } from '../hooks/useErrorHandler';
-import { useCart } from '../hooks/useCart';
+// import { useCart } from '../hooks/useCart';
 import { AppContext } from '../Context/AppContext';
 
 function ProductCard({ product }) {
   const { handleError, showToast } = useErrorHandler();
   const navigate = useNavigate();
-  const { fetchCart } = useCart();
+  // const { fetchCart } = useCart();
   const [addingToCart, setAddingToCart] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -38,8 +38,8 @@ function ProductCard({ product }) {
       console.log('ProductCard: Successfully added to cart, now refreshing...');
       
       // Refresh cart context after successful API call
-      await fetchCart();
-      console.log('ProductCard: Cart refreshed');
+      // await fetchCart();
+      // console.log('ProductCard: Cart refreshed');
       
       setAddedToCart(true);
       handleError('Added to cart successfully!', 'success');

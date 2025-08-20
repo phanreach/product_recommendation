@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Heart, Share2, Star, ShoppingCart, Plus, Minus } from 'lucide-react';
 import { getProductById, addToCart } from '../api/services';
 import CiprRecommendation from '../components/CiprRecommendation';
-import { useCart } from '../hooks/useCart';
+// import { useCart } from '../hooks/useCart';
 
 function ProductDetail() {
   const { id } = useParams();
@@ -18,7 +18,7 @@ function ProductDetail() {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
   const [cartSuccess, setCartSuccess] = useState(false);
-  const { addItemToCart, fetchCart } = useCart();
+  // const { addItemToCart, fetchCart } = useCart();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -72,20 +72,20 @@ function ProductDetail() {
       await addToCart(product.id, quantity);
       
       // Update local cart context
-      addItemToCart({
-        id: product.id,
-        product_id: product.id,
-        product_name: product.name,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        quantity: quantity,
-        size: selectedSize,
-        color: selectedColor
-      });
+      // addItemToCart({
+      //   id: product.id,
+      //   product_id: product.id,
+      //   product_name: product.name,
+      //   name: product.name,
+      //   price: product.price,
+      //   image: product.image,
+      //   quantity: quantity,
+      //   size: selectedSize,
+      //   color: selectedColor
+      // });
       
       // Also refresh cart from server to stay in sync
-      fetchCart();
+      // fetchCart();
       
       setCartSuccess(true);
       

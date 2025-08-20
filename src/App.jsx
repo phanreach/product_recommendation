@@ -10,7 +10,7 @@ import ProductDetail from './pages/product-detail';
 import Collections from './pages/collections';
 import NotFoundPage from './pages/notfound';
 import New from './pages/new';
-import Cart from './pages/cart';
+// import Cart from './pages/cart';
 import { SimpleToaster } from './components/ui/simple-toaster';
 import LoginPage from './components/auth/login';
 import RegisterPage from './components/auth/register';

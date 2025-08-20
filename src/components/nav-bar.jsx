@@ -2,14 +2,14 @@ import { Bell, Home, Package, ShoppingBag, Menu, X } from "lucide-react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useContext } from "react";
 import { AppContext } from "../Context/AppContext";
-import { useCart } from "../hooks/useCart";
+// import { useCart } from "../hooks/useCart";
 
 function Navbar() {
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
     const { user, logout, isAuthenticated } = useContext(AppContext);
-    const { cartCount } = useCart();
+    // const { cartCount } = useCart();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -107,11 +107,11 @@ function Navbar() {
                                 aria-label="Shopping cart with 0 items"
                             >
                                 <ShoppingBag size={20} />
-                                {cartCount > 0 && (
+                                {/* {cartCount > 0 && (
                                     <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center font-medium">
                                         {cartCount > 99 ? '99+' : cartCount}
                                     </span>
-                                )}
+                                )} */}
                             </Link>
 
                             <button 
